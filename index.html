@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Closy">
+<link rel="manifest" href="data:application/json,{%22name%22:%22Closy%20%E2%80%94%20Mi%20Armario%22,%22short_name%22:%22Closy%22,%22description%22:%22Tu%20armario%20digital%20inteligente%22,%22start_url%22:%22./%22,%22scope%22:%22./%22,%22display%22:%22standalone%22,%22background_color%22:%22%231a1a2e%22,%22theme_color%22:%22%231a1a2e%22,%22orientation%22:%22portrait-primary%22,%22lang%22:%22es%22,%22icons%22:[{%22src%22:%22icon-192.png%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22},{%22src%22:%22icon-512.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Closy</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --pk: #C2185B;
+  --pk2: #E91E8C;
+  --pkl: #FCE4EC;
+  --dk: #1a1a2e;
+  --white: #ffffff;
+  --gray: #f5f3f8;
+  --border: rgba(0,0,0,0.09);
+  --border2: rgba(0,0,0,0.15);
+  --text: #1a1a2e;
+  --text2: #555570;
+  --text3: #9898b8;
+  --green: #00C896;
+  --red: #E24B4A;
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sat: env(safe-area-inset-top, 0px);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--dk);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ───── LOGIN ───── */
+#login {
+  position: fixed; inset: 0; background: var(--dk); z-index: 999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: max(var(--sat), 24px) 32px max(var(--sab), 24px);
+  transition: opacity .4s;
+}
+#login.hide { opacity: 0; pointer-events: none; }
+
+.l-brand { font-size: 48px; font-weight: 800; color: #fff; letter-spacing: -2px; }
+.l-brand span { color: var(--pk2); }
+.l-sub { font-size: 11px; color: rgba(255,255,255,.3); letter-spacing: 4px; text-transform: uppercase; margin-top: 4px; margin-bottom: 36px; }
+.l-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--pk), var(--pk2)); display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 10px; }
+.l-name { font-size: 19px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+.l-hint { font-size: 13px; color: rgba(255,255,255,.35); margin-bottom: 28px; }
+
+.pin-dots { display: flex; gap: 14px; margin-bottom: 8px; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.2); transition: all .15s; }
+.pin-dot.filled { background: var(--pk2); border-color: var(--pk2); transform: scale(1.1); }
+.pin-dot.wrong { background: var(--red); border-color: var(--red); }
+
+.pin-msg { font-size: 13px; color: rgba(255,255,255,.3); text-align: center; min-height: 18px; margin-bottom: 24px; }
+.pin-msg.err { color: #ff6b6b; }
+
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 264px; }
+.key {
+  height: 60px; border-radius: 14px; background: rgba(255,255,255,.08); border: none;
+  color: #fff; font-size: 22px; font-weight: 700; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  -webkit-appearance: none; user-select: none; touch-action: manipulation; transition: background .1s;
+}
+.key:active { background: rgba(255,255,255,.22) !important; }
+.key-sub { font-size: 8px; color: rgba(255,255,255,.25); letter-spacing: .12em; text-transform: uppercase; font-weight: 400; }
+.key.del { background: rgba(255,255,255,.03); font-size: 18px; }
+.key.blank { background: transparent; pointer-events: none; }
+.shake { animation: shake .4s ease; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* ───── APP SHELL ───── */
+#app {
+  position: fixed; inset: 0; max-width: 430px; margin: 0 auto;
+  display: flex; flex-direction: column; background: var(--gray);
+}
+
+/* ───── SPLASH ───── */
+#splash {
+  position: absolute; inset: 0; background: var(--dk); z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity .5s;
+}
+.sp-logo { font-size: 46px; font-weight: 800; color: #fff; letter-spacing: -2px; margin-bottom: 4px; }
+.sp-logo span { color: var(--pk2); }
+.sp-tag { font-size: 10px; color: rgba(255,255,255,.3); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 32px; }
+.sp-dots { display: flex; gap: 8px; }
+.sp-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.15); animation: pulse 1.3s infinite; }
+.sp-dot:nth-child(2) { animation-delay: .2s; }
+.sp-dot:nth-child(3) { animation-delay: .4s; }
+@keyframes pulse { 0%,100% { background: rgba(255,255,255,.15); } 50% { background: var(--pk2); } }
+
+/* ───── HEADER ───── */
+.header {
+  background: var(--white); border-bottom: .5px solid var(--border);
+  padding: calc(var(--sat) + 10px) 16px 0; flex-shrink: 0; z-index: 10;
+}
+.header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+.brand { display: flex; align-items: center; gap: 6px; }
+.brand-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
+.brand-name span { color: var(--pk); }
+.brand-badge { font-size: 9px; background: var(--pkl); color: var(--pk); padding: 2px 7px; border-radius: 20px; font-weight: 800; }
+.header-btns { display: flex; gap: 6px; align-items: center; }
+.icon-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: .5px solid var(--border);
+  background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; -webkit-appearance: none; touch-action: manipulation;
+}
+.icon-btn:active { background: var(--pkl); }
+.text-btn {
+  font-size: 11px; font-weight: 700; color: var(--text3); background: transparent;
+  border: .5px solid var(--border); border-radius: 20px; padding: 5px 9px;
+  cursor: pointer; -webkit-appearance: none; touch-action: manipulation;
+}
+.text-btn:active { background: #fff0f0; color: var(--red); }
+
+.search-bar {
+  display: flex; align-items: center; gap: 8px; background: #f0eef7;
+  border-radius: 12px; padding: 9px 13px; margin-bottom: 11px;
+}
+.search-bar input {
+  border: none; background: transparent; flex: 1; font-size: 15px; color: var(--text);
+  outline: none; -webkit-appearance: none; min-width: 0;
+}
+.search-bar input::placeholder { color: var(--text3); }
+.search-clear { font-size: 13px; color: var(--text3); cursor: pointer; display: none; padding: 2px; flex-shrink: 0; }
+
+.cat-row { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 11px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.cat-row::-webkit-scrollbar { display: none; }
+.cat-pill {
+  white-space: nowrap; padding: 7px 13px; border-radius: 20px; border: .5px solid var(--border);
+  background: var(--white); font-size: 12px; font-weight: 600; color: var(--text2);
+  cursor: pointer; -webkit-appearance: none; touch-action: manipulation; flex-shrink: 0;
+}
+.cat-pill.active { background: var(--dk); color: #fff; border-color: var(--dk); }
+
+/* ───── SCROLL CONTENT ───── */
+.content {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 14px 14px calc(80px + var(--sab));
+}
+.page { display: none; }
+.page.active { display: block; }
+
+/* ───── HERO ───── */
+.hero {
+  background: var(--dk); border-radius: 18px; padding: 18px;
+  margin-bottom: 14px; position: relative; overflow: hidden;
+}
+.hero::after { content: '✨'; position: absolute; right: -4px; bottom: -10px; font-size: 80px; opacity: .07; pointer-events: none; }
+.hero-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 2px; }
+.hero-sub { font-size: 12px; color: rgba(255,255,255,.4); }
+.hero-stats { display: flex; gap: 18px; margin-top: 12px; }
+.hero-stat-n { font-size: 20px; font-weight: 800; color: var(--pk2); }
+.hero-stat-l { font-size: 9px; color: rgba(255,255,255,.3); text-transform: uppercase; letter-spacing: .1em; }
+
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-title { font-size: 11px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: .1em; }
+.section-action { font-size: 13px; color: var(--pk); font-weight: 700; cursor: pointer; touch-action: manipulation; }
+
+/* ───── GRID ───── */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.item-card {
+  background: var(--white); border-radius: 17px; border: .5px solid var(--border);
+  overflow: hidden; cursor: pointer; position: relative;
+  user-select: none; touch-action: manipulation;
+}
+.item-card:active { opacity: .85; }
+.item-img {
+  aspect-ratio: 3/4; background: linear-gradient(145deg, #f8f4fb, #ece5f5);
+  display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+}
+.item-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.item-emoji { font-size: 48px; z-index: 0; }
+.item-brand-badge {
+  position: absolute; top: 8px; left: 8px; font-size: 8px; font-weight: 800;
+  padding: 3px 7px; border-radius: 8px; color: #fff; z-index: 2;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.item-fav {
+  position: absolute; top: 7px; right: 7px; width: 28px; height: 28px;
+  border-radius: 50%; background: rgba(255,255,255,.92); border: none;
+  cursor: pointer; font-size: 13px; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-appearance: none; touch-action: manipulation;
+}
+.item-new {
+  position: absolute; bottom: 7px; left: 7px; font-size: 8px;
+  background: var(--green); color: #fff; padding: 2px 6px; border-radius: 6px;
+  font-weight: 800; z-index: 2;
+}
+.item-info { padding: 9px 11px 11px; }
+.item-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+.item-meta { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.item-price { font-size: 13px; color: var(--pk); font-weight: 800; }
+.item-cat { font-size: 10px; color: var(--text3); background: #f0ecf8; padding: 2px 6px; border-radius: 6px; font-weight: 600; }
+
+.empty-state { grid-column: span 2; text-align: center; padding: 50px 20px; }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-title { font-size: 15px; font-weight: 700; color: var(--text2); margin-bottom: 5px; }
+.empty-sub { font-size: 13px; color: var(--text3); line-height: 1.6; }
+
+/* ───── FAB ───── */
+.fab {
+  position: fixed; bottom: calc(64px + var(--sab) + 12px);
+  right: min(calc(50vw - 200px), 16px);
+  width: 52px; height: 52px; border-radius: 50%; background: var(--dk); border: none;
+  cursor: pointer; font-size: 26px; color: #fff; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; -webkit-appearance: none; touch-action: manipulation;
+}
+@media (max-width: 430px) { .fab { right: 16px; } }
+.fab.open { background: var(--pk); transform: rotate(45deg); }
+
+.fab-menu {
+  position: fixed; bottom: calc(64px + var(--sab) + 76px);
+  right: min(calc(50vw - 200px), 16px);
+  display: flex; flex-direction: column; gap: 8px; z-index: 29;
+  align-items: flex-end; opacity: 0; transform: translateY(12px);
+  pointer-events: none; transition: all .2s;
+}
+@media (max-width: 430px) { .fab-menu { right: 16px; } }
+.fab-menu.open { opacity: 1; transform: translateY(0); pointer-events: all; }
+.fab-item { display: flex; align-items: center; gap: 8px; cursor: pointer; touch-action: manipulation; }
+.fab-label { background: var(--dk); color: #fff; font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 20px; white-space: nowrap; }
+.fab-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--white); border: .5px solid var(--border); font-size: 16px; display: flex; align-items: center; justify-content: center; }
+
+/* ───── NAV ───── */
+.nav {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; background: rgba(255,255,255,.97);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  border-top: .5px solid var(--border); padding: 7px 0 calc(var(--sab) + 8px); flex-shrink: 0;
+}
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 3px 0; touch-action: manipulation; }
+.nav-icon { font-size: 19px; color: var(--text3); }
+.nav-label { font-size: 9px; color: var(--text3); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
+.nav-item.active .nav-icon, .nav-item.active .nav-label { color: var(--pk); }
+
+/* ───── BOTTOM SHEET ───── */
+.sheet-backdrop {
+  display: none; position: absolute; inset: 0;
+  background: rgba(10,10,30,.5); z-index: 50; align-items: flex-end;
+}
+.sheet-backdrop.open { display: flex; }
+.sheet {
+  background: var(--white); border-radius: 22px 22px 0 0;
+  padding: 5px 18px calc(var(--sab) + 24px); width: 100%;
+  max-height: 92%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.sheet-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 9px auto 14px; }
+.sheet-title { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+.sheet-sub { font-size: 13px; color: var(--text3); margin-bottom: 16px; }
+
+/* ───── FORM ───── */
+.form-label { font-size: 11px; font-weight: 800; color: var(--text2); margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: .07em; }
+.form-input {
+  width: 100%; border: 1px solid var(--border2); border-radius: 12px;
+  padding: 12px 13px; font-size: 16px; color: var(--text); background: #fff;
+  outline: none; margin-bottom: 12px; -webkit-appearance: none; appearance: none;
+}
+.form-input:focus { border-color: var(--pk); }
+.form-select {
+  width: 100%; border: 1px solid var(--border2); border-radius: 12px;
+  padding: 12px 13px; font-size: 16px; color: var(--text); background: #fff;
+  outline: none; margin-bottom: 12px; -webkit-appearance: none; appearance: none;
+}
+.brands-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+.brand-opt {
+  border: 1px solid var(--border); border-radius: 10px; padding: 8px 4px;
+  cursor: pointer; text-align: center; font-size: 11px; font-weight: 700; color: var(--text2);
+  touch-action: manipulation;
+}
+.brand-opt.active { border-color: var(--pk); background: var(--pkl); color: var(--pk); }
+.emoji-grid { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+.emoji-opt { font-size: 20px; cursor: pointer; padding: 5px; border-radius: 9px; border: 1px solid transparent; line-height: 1; touch-action: manipulation; }
+.emoji-opt.active { border-color: var(--pk); background: var(--pkl); }
+.btn-primary {
+  width: 100%; background: var(--dk); color: #fff; border: none;
+  border-radius: 13px; padding: 14px; font-size: 15px; font-weight: 800;
+  cursor: pointer; margin-top: 3px; -webkit-appearance: none; touch-action: manipulation;
+}
+.btn-primary:active { background: var(--pk); }
+.btn-secondary {
+  width: 100%; background: transparent; color: var(--text2); border: 1px solid var(--border2);
+  border-radius: 13px; padding: 12px; font-size: 14px; font-weight: 600;
+  cursor: pointer; margin-top: 8px; -webkit-appearance: none; touch-action: manipulation;
+}
+.btn-danger { color: var(--red); border-color: #f5c0c0; }
+.btn-danger:active { background: #fff0f0; }
+
+/* ───── PHOTO AREA ───── */
+.photo-area {
+  border: 2px dashed var(--border2); border-radius: 14px; padding: 16px;
+  text-align: center; margin-bottom: 12px; position: relative; overflow: hidden;
+  min-height: 90px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; cursor: pointer; touch-action: manipulation;
+}
+.photo-area.has-photo { border-style: solid; border-color: var(--green); }
+.photo-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 16px; }
+.photo-preview { width: 100%; height: 160px; object-fit: cover; border-radius: 10px; display: none; }
+.photo-placeholder-icon { font-size: 28px; }
+.photo-placeholder-text { font-size: 13px; font-weight: 700; color: var(--text2); }
+.photo-placeholder-sub { font-size: 11px; color: var(--text3); }
+
+/* ───── STATUS BOX ───── */
+.status-bar {
+  background: #eeeeff; border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; color: #534AB7; margin-bottom: 12px;
+  display: none; align-items: center; gap: 7px; font-weight: 600;
+}
+.status-bar.show { display: flex; }
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ok-box { border: 1.5px solid var(--green); border-radius: 12px; padding: 11px 13px; margin-bottom: 12px; display: none; background: #edfff7; }
+.ok-box.show { display: block; }
+.ok-box-label { font-size: 10px; font-weight: 800; color: var(--green); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .08em; }
+.ok-box-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.ok-box-info { font-size: 12px; color: var(--text2); margin-top: 3px; }
+
+.err-box { background: #fff0f0; border: 1px solid #f5c0c0; border-radius: 12px; padding: 14px; margin-bottom: 12px; text-align: center; display: none; }
+.err-box.show { display: block; }
+
+/* ───── SCAN ───── */
+.scan-area { background: var(--dk); border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 14px; }
+.scan-frame {
+  width: 220px; height: 220px; border: 2px solid var(--pk2); border-radius: 14px;
+  margin: 0 auto 12px; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; background: #000;
+}
+.scan-line { position: absolute; left: 6px; right: 6px; height: 2px; background: var(--pk2); animation: scanline 2s ease-in-out infinite; z-index: 2; }
+@keyframes scanline { 0%,100% { top: 12%; } 50% { top: 80%; } }
+#camera-video { width: 100%; height: 100%; object-fit: cover; display: none; }
+.scan-emoji-placeholder { font-size: 52px; }
+.scan-info { font-size: 12px; color: rgba(255,255,255,.45); line-height: 1.6; }
+
+/* ───── BRAND STRIP ───── */
+.brand-strip { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
+.brand-chip { font-size: 10px; font-weight: 800; padding: 4px 9px; border-radius: 9px; color: #fff; cursor: pointer; touch-action: manipulation; }
+
+/* ───── DETAIL MODAL ───── */
+.detail-backdrop {
+  display: none; position: absolute; inset: 0;
+  background: rgba(10,10,30,.6); z-index: 60; align-items: center; justify-content: center;
+}
+.detail-backdrop.open { display: flex; }
+.detail-card { background: var(--white); border-radius: 20px; width: 88%; max-width: 350px; overflow: hidden; }
+.detail-img {
+  aspect-ratio: 4/5; background: linear-gradient(145deg, #f8f4fb, #ece5f5);
+  display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+}
+.detail-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.detail-emoji { font-size: 66px; z-index: 0; }
+.detail-close {
+  position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+  border-radius: 50%; background: rgba(255,255,255,.92); border: none;
+  cursor: pointer; font-size: 15px; z-index: 3; display: flex; align-items: center; justify-content: center;
+  -webkit-appearance: none; touch-action: manipulation;
+}
+.detail-shop {
+  position: absolute; bottom: 10px; right: 10px; background: rgba(26,26,46,.85);
+  color: #fff; border: none; border-radius: 10px; padding: 7px 12px;
+  font-size: 11px; font-weight: 700; cursor: pointer; z-index: 3;
+  -webkit-appearance: none; touch-action: manipulation;
+}
+.detail-body { padding: 14px 16px 18px; }
+.detail-brand-pill { display: inline-block; font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 8px; color: #fff; margin-bottom: 7px; text-transform: uppercase; letter-spacing: .1em; }
+.detail-name { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 2px; line-height: 1.25; }
+.detail-code { font-size: 12px; color: var(--text3); font-family: monospace; margin-bottom: 10px; }
+.detail-row { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: .5px solid var(--border); }
+.detail-price { font-size: 21px; font-weight: 800; color: var(--pk); }
+.detail-cat-pill { font-size: 11px; background: #f0ecf8; padding: 3px 9px; border-radius: 9px; color: var(--text2); font-weight: 600; }
+.detail-btns { display: flex; gap: 7px; margin-top: 10px; }
+.detail-btn {
+  flex: 1; border: 1px solid var(--border2); border-radius: 10px; padding: 9px;
+  font-size: 12px; font-weight: 700; cursor: pointer; text-align: center;
+  background: transparent; color: var(--text); -webkit-appearance: none; touch-action: manipulation;
+}
+.detail-btn:active { background: var(--pkl); }
+.detail-btn.danger { color: var(--red); border-color: #f5c0c0; }
+.detail-btn.danger:active { background: #fff0f0; }
+
+/* ───── OUTFITS ───── */
+.outfit-builder { background: var(--dk); border-radius: 17px; padding: 14px; margin-bottom: 14px; }
+.outfit-builder-title { font-size: 13px; font-weight: 800; color: #fff; margin-bottom: 10px; }
+.outfit-slots { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+.outfit-slots::-webkit-scrollbar { display: none; }
+.outfit-slot {
+  min-width: 60px; height: 60px; border-radius: 12px; border: 1.5px dashed rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  cursor: pointer; flex-shrink: 0; touch-action: manipulation;
+}
+.outfit-slot.filled { border-style: solid; border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.07); }
+.outfit-btns { display: flex; gap: 7px; }
+.outfit-btn {
+  flex: 1; border: 1px solid rgba(255,255,255,.12); border-radius: 9px; padding: 7px;
+  font-size: 12px; font-weight: 700; cursor: pointer; text-align: center;
+  background: transparent; color: rgba(255,255,255,.6); -webkit-appearance: none; touch-action: manipulation;
+}
+.outfit-btn.save { background: var(--pk2); border-color: var(--pk2); color: #fff; }
+.outfit-card { background: var(--white); border-radius: 16px; border: .5px solid var(--border); padding: 12px; cursor: pointer; }
+.outfit-preview { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; border-radius: 10px; overflow: hidden; margin-bottom: 8px; aspect-ratio: 1; background: #f0ecf8; }
+.outfit-preview-item { display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.outfit-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.outfit-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ───── STATS ───── */
+.stat-card { background: var(--white); border-radius: 16px; border: .5px solid var(--border); padding: 14px; margin-bottom: 10px; }
+.stat-card-title { font-size: 11px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; }
+.stat-big { font-size: 34px; font-weight: 800; color: var(--pk); }
+.stat-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.stat-bar-label { font-size: 12px; color: var(--text2); min-width: 82px; font-weight: 600; }
+.stat-bar-track { flex: 1; height: 7px; background: #f0ecf8; border-radius: 4px; overflow: hidden; }
+.stat-bar-fill { height: 7px; border-radius: 4px; }
+.stat-bar-count { font-size: 12px; color: var(--text3); min-width: 16px; text-align: right; font-weight: 600; }
+.stat-cat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: .5px solid var(--border); }
+
+/* ───── INSTALL GUIDE ───── */
+.install-guide { background: var(--white); border-radius: 17px; border: .5px solid var(--border); padding: 16px; margin-bottom: 12px; }
+.install-step { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: .5px solid var(--border); }
+.install-step:last-child { border: none; margin-bottom: 0; padding-bottom: 0; }
+.install-step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--pk); color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.install-step-text { font-size: 14px; color: var(--text); line-height: 1.5; }
+.install-step-text strong { color: var(--pk); font-weight: 800; }
+
+/* ───── TOAST ───── */
+.toast {
+  position: absolute; bottom: calc(72px + var(--sab) + 12px); left: 50%;
+  transform: translateX(-50%) translateY(10px); background: var(--dk); color: #fff;
+  padding: 10px 18px; border-radius: 22px; font-size: 13px; font-weight: 700;
+  z-index: 200; white-space: nowrap; pointer-events: none; opacity: 0; transition: all .3s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login">
+  <div class="l-brand">clos<span>y</span></div>
+  <div class="l-sub">armario inteligente</div>
+  <div class="l-avatar">👗</div>
+  <div class="l-name">Bienvenida 👋</div>
+  <div class="l-hint">PIN de 4 dígitos</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-msg" id="pin-msg">&nbsp;</div>
+  <div class="keypad">
+    <button class="key" onclick="pinPress('1')">1</button>
+    <button class="key" onclick="pinPress('2')"><span>2</span><span class="key-sub">ABC</span></button>
+    <button class="key" onclick="pinPress('3')"><span>3</span><span class="key-sub">DEF</span></button>
+    <button class="key" onclick="pinPress('4')"><span>4</span><span class="key-sub">GHI</span></button>
+    <button class="key" onclick="pinPress('5')"><span>5</span><span class="key-sub">JKL</span></button>
+    <button class="key" onclick="pinPress('6')"><span>6</span><span class="key-sub">MNO</span></button>
+    <button class="key" onclick="pinPress('7')"><span>7</span><span class="key-sub">PQRS</span></button>
+    <button class="key" onclick="pinPress('8')"><span>8</span><span class="key-sub">TUV</span></button>
+    <button class="key" onclick="pinPress('9')"><span>9</span><span class="key-sub">WXYZ</span></button>
+    <div class="key blank"></div>
+    <button class="key" onclick="pinPress('0')">0</button>
+    <button class="key del" onclick="pinDel()">⌫</button>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <div id="splash">
+    <div class="sp-logo">clos<span>y</span></div>
+    <div class="sp-tag">tu armario inteligente</div>
+    <div class="sp-dots">
+      <div class="sp-dot"></div><div class="sp-dot"></div><div class="sp-dot"></div>
+    </div>
+  </div>
+
+  <div class="header">
+    <div class="header-row">
+      <div class="brand">
+        <div class="brand-name">clos<span>y</span></div>
+        <div class="brand-badge">PRO</div>
+      </div>
+      <div class="header-btns">
+        <button class="icon-btn" onclick="goTo('favs')">🤍</button>
+        <button class="icon-btn" onclick="goTo('stats')">📊</button>
+        <button class="icon-btn" onclick="showInstall()" title="Instalar app">📲</button>
+        <button class="text-btn" onclick="logout()">Salir</button>
+      </div>
+    </div>
+    <div class="search-bar">
+      <span style="font-size:14px;color:var(--text3)">🔍</span>
+      <input id="search-input" type="search" placeholder="Buscar prenda, marca, código..."
+             autocomplete="off" autocorrect="off" spellcheck="false" oninput="renderHome()">
+      <span class="search-clear" id="search-clear" onclick="clearSearch()">✕</span>
+    </div>
+    <div class="cat-row" id="cat-row"></div>
+  </div>
+
+  <div class="content">
+    <div class="page active" id="page-home">
+      <div class="hero">
+        <div class="hero-title" id="hero-title">Mi armario ✨</div>
+        <div class="hero-sub" id="hero-sub">¿Qué te pones hoy?</div>
+        <div class="hero-stats">
+          <div>
+            <div class="hero-stat-n" id="stat-count">0</div>
+            <div class="hero-stat-l">Prendas</div>
+          </div>
+          <div>
+            <div class="hero-stat-n" id="stat-brands">0</div>
+            <div class="hero-stat-l">Marcas</div>
+          </div>
+          <div>
+            <div class="hero-stat-n" id="stat-value">0€</div>
+            <div class="hero-stat-l">Valor</div>
+          </div>
+        </div>
+      </div>
+      <div class="section-head">
+        <div class="section-title" id="section-label">Todas</div>
+        <div class="section-action" onclick="openAdd()">+ Añadir</div>
+      </div>
+      <div class="grid" id="items-grid"></div>
+    </div>
+
+    <div class="page" id="page-outfits">
+      <div class="outfit-builder">
+        <div class="outfit-builder-title">✨ Constructor de outfits</div>
+        <div class="outfit-slots" id="outfit-slots"></div>
+        <div class="outfit-btns">
+          <button class="outfit-btn" onclick="clearOutfit()">🗑 Limpiar</button>
+          <button class="outfit-btn save" onclick="saveOutfit()">💾 Guardar look</button>
+        </div>
+      </div>
+      <div class="section-head"><div class="section-title">Mis looks</div></div>
+      <div class="grid" id="outfits-grid"></div>
+    </div>
+
+    <div class="page" id="page-favs">
+      <div class="section-head"><div class="section-title">Favoritas 🤍</div></div>
+      <div class="grid" id="favs-grid"></div>
+    </div>
+
+    <div class="page" id="page-stats">
+      <div class="section-head"><div class="section-title">Mis estadísticas</div></div>
+      <div id="stats-content"></div>
+    </div>
+
+    <div class="page" id="page-install">
+      <div class="section-head"><div class="section-title">Instalar Closy 📲</div></div>
+      <div id="install-content"></div>
+    </div>
+  </div>
+
+  <button class="fab" id="fab" onclick="toggleFab()">+</button>
+  <div class="fab-menu" id="fab-menu">
+    <div class="fab-item" onclick="startAdd('scan')"><div class="fab-label">📷 Escanear etiqueta</div><div class="fab-icon">📷</div></div>
+    <div class="fab-item" onclick="startAdd('url')"><div class="fab-label">🔗 URL de tienda</div><div class="fab-icon">🔗</div></div>
+    <div class="fab-item" onclick="startAdd('code')"><div class="fab-label">⌨️ Código de prenda</div><div class="fab-icon">⌨️</div></div>
+    <div class="fab-item" onclick="startAdd('manual')"><div class="fab-label">✏️ Añadir manualmente</div><div class="fab-icon">✏️</div></div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-item active" id="nav-home" onclick="goTo('home')">
+      <div class="nav-icon">👗</div><div class="nav-label">Armario</div>
+    </div>
+    <div class="nav-item" id="nav-outfits" onclick="goTo('outfits')">
+      <div class="nav-icon">✨</div><div class="nav-label">Outfits</div>
+    </div>
+    <div class="nav-item" id="nav-favs" onclick="goTo('favs')">
+      <div class="nav-icon">🤍</div><div class="nav-label">Favoritas</div>
+    </div>
+    <div class="nav-item" id="nav-stats" onclick="goTo('stats')">
+      <div class="nav-icon">📊</div><div class="nav-label">Stats</div>
+    </div>
+  </nav>
+
+  <div class="sheet-backdrop" id="add-backdrop" onclick="closeSheetIfBackdrop(event, 'add-backdrop')">
+    <div class="sheet" id="add-sheet"></div>
+  </div>
+
+  <div class="detail-backdrop" id="detail-backdrop" onclick="closeSheetIfBackdrop(event, 'detail-backdrop')">
+    <div class="detail-card" id="detail-card"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const CATS = [
+  {id:'all',  l:'Todo',       i:'👀'},
+  {id:'tops', l:'Tops',       i:'👚'},
+  {id:'camisetas', l:'Camisetas', i:'👕'},
+  {id:'vestidos',  l:'Vestidos',  i:'👗'},
+  {id:'chaquetas', l:'Chaquetas', i:'🧣'},
+  {id:'abrigos',   l:'Abrigos',   i:'🧥'},
+  {id:'jerseys',   l:'Jerseys',   i:'🧶'},
+  {id:'pantalones',l:'Pantalones',i:'👖'},
+  {id:'faldas',    l:'Faldas',    i:'🩱'},
+  {id:'zapatos',   l:'Zapatos',   i:'👟'},
+  {id:'bolsos',    l:'Bolsos',    i:'👜'},
+  {id:'accesorios',l:'Accesorios',i:'💍'},
+];
+
+const BRANDS = [
+  {id:'zara',  n:'Zara',          c:'#1a1a2e', url:'https://www.zara.com/es/es/search?searchTerm='},
+  {id:'mango', n:'Mango',         c:'#6B3500', url:'https://shop.mango.com/es/buscar?q='},
+  {id:'shein', n:'Shein',         c:'#B71C1C', url:'https://es.shein.com/pdsearch/'},
+  {id:'hm',    n:'H&M',           c:'#CC0000', url:'https://www2.hm.com/es_es/search-results.html?q='},
+  {id:'bershka',n:'Bershka',      c:'#4527A0', url:'https://www.bershka.com/es/search?q='},
+  {id:'pullbear',n:'Pull&Bear',   c:'#2E7D32', url:'https://www.pullandbear.com/es/search?q='},
+  {id:'stradivarius',n:'Stradivarius',c:'#880E4F',url:'https://www.stradivarius.com/es/search?q='},
+  {id:'massimo',n:'Massimo Dutti',c:'#37474F', url:'https://www.massimodutti.com/es/search?q='},
+  {id:'lefties',n:'Lefties',      c:'#1565C0', url:'https://www.lefties.com/es/search?q='},
+  {id:'nike',  n:'Nike',          c:'#111',    url:'https://www.nike.com/es/search?q='},
+  {id:'adidas',n:'Adidas',        c:'#000',    url:'https://www.adidas.es/search?q='},
+  {id:'otro',  n:'Otra marca',    c:'#888',    url:''},
+];
+
+const EMOJIS = ['👗','👕','👚','🧥','👖','👟','👠','👡','👢','👜','👛','🧣','🧶','🩱','🩲','💍','🎒','🧢','🕶️','🩴','👒','🩰'];
+
+const DEMO_ITEMS = [
+  {id:'d1',name:'Vestido midi satén',brand:'zara',cat:'vestidos',code:'4521-087',price:39.95,emoji:'👗',fav:true,added:Date.now()-86400000,photo:''},
+  {id:'d2',name:'Sneakers chunky',brand:'shein',cat:'zapatos',code:'SH-9934X',price:24.99,emoji:'👟',fav:false,added:Date.now()-172800000,photo:''},
+  {id:'d3',name:'Abrigo camel midi',brand:'mango',cat:'abrigos',code:'MNG-3312',price:89.95,emoji:'🧥',fav:true,added:Date.now()-259200000,photo:''},
+  {id:'d4',name:'Top ribbed básico',brand:'bershka',cat:'tops',code:'BSK-445',price:12.99,emoji:'👚',fav:false,added:Date.now()-345600000,photo:''},
+  {id:'d5',name:'Mom jeans vintage',brand:'pullbear',cat:'pantalones',code:'PB-7723',price:29.99,emoji:'👖',fav:true,added:Date.now()-432000000,photo:''},
+  {id:'d6',name:'Jersey oversize knit',brand:'hm',cat:'jerseys',code:'HM-2201',price:19.99,emoji:'🧶',fav:false,added:Date.now()-518400000,photo:''},
+  {id:'d7',name:'Blazer oversize gris',brand:'zara',cat:'chaquetas',code:'ZR-5512',price:59.95,emoji:'🧣',fav:false,added:Date.now()-604800000,photo:''},
+  {id:'d8',name:'Mini falda plisada',brand:'stradivarius',cat:'faldas',code:'STR-882',price:17.99,emoji:'🩱',fav:true,added:Date.now()-691200000,photo:''},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let items = [], outfits = [], curCat = 'all', curPage = 'home';
+let outfit = [], fabOpen = false, editingId = null, photoData = '';
+const PIN = '2009';
+let pinBuf = '', pinBusy = false;
+let camStream = null;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const getBrand = id => BRANDS.find(b => b.id === id) || { n: id, c: '#888', url: '' };
+const getCat   = id => CATS.find(c => c.id === id) || { l: id, i: '👗' };
+const $ = id => document.getElementById(id);
+
+// ── STORAGE ───────────────────────────────────────────────────────────────
+function loadData() {
+  try {
+    const d = localStorage.getItem('closy');
+    items = d ? JSON.parse(d) : DEMO_ITEMS.map(x => ({...x}));
+    const d2 = localStorage.getItem('closy-fits');
+    outfits = d2 ? JSON.parse(d2) : [];
+  } catch(e) {
+    items = DEMO_ITEMS.map(x => ({...x}));
+    outfits = [];
+  }
+}
+function saveData() {
+  try {
+    localStorage.setItem('closy', JSON.stringify(items));
+    localStorage.setItem('closy-fits', JSON.stringify(outfits));
+  } catch(e) {
+    toast('⚠️ Almacenamiento lleno — borra algunas fotos');
+  }
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────
+function pinPress(d) {
+  if (pinBusy || pinBuf.length >= 4) return;
+  pinBuf += d;
+  updateDots();
+  if (pinBuf.length === 4) setTimeout(checkPin, 140);
+}
+function pinDel() {
+  if (pinBusy) return;
+  pinBuf = pinBuf.slice(0, -1);
+  updateDots();
+  $('pin-msg').textContent = '\u00a0';
+  $('pin-msg').classList.remove('err');
+}
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    $('d' + i).classList.toggle('filled', i < pinBuf.length);
+    $('d' + i).classList.remove('wrong');
+  }
+}
+function checkPin() {
+  if (pinBuf === PIN) {
+    for (let i = 0; i < 4; i++) $('d' + i).classList.add('filled');
+    $('pin-msg').textContent = '✓ Bienvenida!';
+    $('pin-msg').style.color = '#00C896';
+    setTimeout(() => {
+      const l = $('login');
+      l.classList.add('hide');
+      setTimeout(() => { l.style.display = 'none'; }, 400);
+      boot();
+    }, 450);
+  } else {
+    pinBusy = true;
+    for (let i = 0; i < 4; i++) $('d' + i).classList.add('wrong');
+    $('pin-msg').textContent = 'PIN incorrecto';
+    $('pin-msg').classList.add('err');
+    $('pin-dots').classList.add('shake');
+    setTimeout(() => {
+      pinBuf = '';
+      updateDots();
+      pinBusy = false;
+      $('pin-dots').classList.remove('shake');
+      $('pin-msg').textContent = '\u00a0';
+      $('pin-msg').classList.remove('err');
+      $('pin-msg').style.color = '';
+    }, 1200);
+  }
+}
+function logout() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  pinBuf = '';
+  updateDots();
+  const l = $('login');
+  l.style.display = 'flex';
+  l.style.opacity = '0';
+  l.classList.remove('hide');
+  requestAnimationFrame(() => { l.style.opacity = '1'; });
+  $('pin-msg').textContent = '\u00a0';
+  $('pin-msg').style.color = '';
+  $('pin-msg').classList.remove('err');
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────
+function boot() {
+  loadData();
+  registerSW();
+  renderCats();
+  renderHome();
+  renderOutfitSlots();
+  setTimeout(() => {
+    const s = $('splash');
+    s.style.opacity = '0';
+    setTimeout(() => s.style.display = 'none', 500);
+  }, 1300);
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+}
+
+// ── CATS ──────────────────────────────────────────────────────────────────
+function renderCats() {
+  $('cat-row').innerHTML = CATS.map(c =>
+    `<button class="cat-pill${curCat === c.id ? ' active' : ''}" onclick="setCat('${c.id}')">${c.i} ${c.l}</button>`
+  ).join('');
+}
+function setCat(id) { curCat = id; renderCats(); renderHome(); }
+
+// ── HOME ──────────────────────────────────────────────────────────────────
+function renderHome() {
+  const q = ($('search-input').value || '').toLowerCase();
+  $('search-clear').style.display = q ? 'block' : 'none';
+
+  // Filter — using item.cat (correct field name)
+  const list = items.filter(item => {
+    const matchCat = curCat === 'all' || item.cat === curCat;
+    const matchQ = !q || item.name.toLowerCase().includes(q)
+      || getBrand(item.brand).n.toLowerCase().includes(q)
+      || (item.code || '').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  }).sort((a, b) => b.added - a.added);
+
+  // Update hero
+  const total = items.reduce((s, i) => s + (i.price || 0), 0);
+  $('stat-count').textContent = items.length;
+  $('stat-brands').textContent = new Set(items.map(i => i.brand)).size;
+  $('stat-value').textContent = total.toFixed(0) + '€';
+
+  const h = new Date().getHours();
+  if (q) {
+    $('hero-title').textContent = 'Búsqueda 🔍';
+    $('hero-sub').textContent = list.length + ' resultado' + (list.length !== 1 ? 's' : '');
+  } else if (curCat !== 'all') {
+    const cat = getCat(curCat);
+    $('hero-title').textContent = cat.i + ' ' + cat.l;
+    $('hero-sub').textContent = list.length + ' prenda' + (list.length !== 1 ? 's' : '');
+  } else {
+    $('hero-title').textContent = h < 12 ? 'Buenos días ☀️' : h < 20 ? 'Buenas tardes ✨' : 'Buenas noches 🌙';
+    $('hero-sub').textContent = items.length ? '¿Qué te pones hoy?' : 'Añade tu primera prenda';
+  }
+
+  $('section-label').textContent = curCat === 'all'
+    ? `Todas (${list.length})`
+    : `${getCat(curCat).i} ${getCat(curCat).l} (${list.length})`;
+
+  renderGrid('items-grid', list);
+}
+function clearSearch() { $('search-input').value = ''; renderHome(); }
+
+// ── GRID ──────────────────────────────────────────────────────────────────
+function renderGrid(gridId, list) {
+  const g = $(gridId);
+  if (!g) return;
+  if (!list.length) {
+    g.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🛍️</div>
+      <div class="empty-title">Nada aquí todavía</div>
+      <div class="empty-sub">Pulsa <strong>+</strong> para añadir tu primera prenda</div>
+    </div>`;
+    return;
+  }
+  g.innerHTML = list.map(item => {
+    const br = getBrand(item.brand);
+    const isNew = Date.now() - item.added < 172800000;
+    return `<div class="item-card" onclick="openDetail('${item.id}')">
+      <div class="item-img">
+        ${item.photo ? `<img src="${item.photo}" onerror="this.style.display='none'" loading="lazy">` : ''}
+        <div class="item-emoji">${item.emoji || '👗'}</div>
+        <div class="item-brand-badge" style="background:${br.c}">${br.n}</div>
+        <button class="item-fav" onclick="event.stopPropagation();toggleFav('${item.id}')">${item.fav ? '❤️' : '🤍'}</button>
+        ${isNew ? '<div class="item-new">Nueva</div>' : ''}
+      </div>
+      <div class="item-info">
+        <div class="item-name">${item.name}</div>
+        <div class="item-meta">
+          <div class="item-price">${item.price ? item.price.toFixed(2) + '€' : ''}</div>
+          <div class="item-cat">${getCat(item.cat).l}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderFavs()    { renderGrid('favs-grid', items.filter(i => i.fav)); }
+function renderOutfits() {
+  const g = $('outfits-grid');
+  if (!g) return;
+  if (!outfits.length) {
+    g.innerHTML = `<div class="empty-state"><div class="empty-icon">✨</div><div class="empty-title">Sin looks aún</div><div class="empty-sub">Usa el constructor para crear tu primer outfit</div></div>`;
+    return;
+  }
+  g.innerHTML = outfits.map(o => {
+    const pieces = o.ids.map(id => items.find(i => i.id === id)).filter(Boolean);
+    return `<div class="outfit-card">
+      <div class="outfit-preview">${[0,1,2,3].map(i => `<div class="outfit-preview-item">${pieces[i] ? pieces[i].emoji : '·'}</div>`).join('')}</div>
+      <div class="outfit-name">${o.name}</div>
+      <div class="outfit-meta">${pieces.length} prendas · ${new Date(o.added).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── OUTFIT BUILDER ────────────────────────────────────────────────────────
+function renderOutfitSlots() {
+  const used = outfit.map(id => items.find(i => i.id === id)).filter(Boolean);
+  const empties = Math.max(1, 5 - used.length);
+  $('outfit-slots').innerHTML = [
+    ...used.map((item, i) => `<div class="outfit-slot filled" onclick="removeFromOutfit(${i})">${item.emoji}</div>`),
+    ...Array(empties).fill(0).map(() => `<div class="outfit-slot" onclick="pickForOutfit()">＋</div>`),
+  ].join('');
+}
+function removeFromOutfit(i) { outfit.splice(i, 1); renderOutfitSlots(); }
+function pickForOutfit() {
+  const available = items.filter(i => !outfit.includes(i.id));
+  if (!available.length) { toast('No hay más prendas'); return; }
+  $('add-sheet').innerHTML = `<div class="sheet-handle"></div>
+    <div class="sheet-title">Añadir al outfit</div>
+    <div class="grid" style="max-height:55vh;overflow-y:auto;margin-top:12px">
+      ${available.map(item => `<div class="item-card" onclick="addToOutfit('${item.id}')">
+        <div class="item-img" style="aspect-ratio:1">
+          ${item.photo ? `<img src="${item.photo}" onerror="this.style.display='none'">` : ''}
+          <div class="item-emoji" style="font-size:34px">${item.emoji}</div>
+        </div>
+        <div class="item-info"><div class="item-name">${item.name}</div></div>
+      </div>`).join('')}
+    </div>
+    <button class="btn-secondary" onclick="closeSheet()">Cancelar</button>`;
+  openSheet();
+}
+function addToOutfit(id) { if (!outfit.includes(id)) outfit.push(id); closeSheet(); renderOutfitSlots(); }
+function clearOutfit() { outfit = []; renderOutfitSlots(); }
+function saveOutfit() {
+  if (outfit.length < 2) { toast('Añade al menos 2 prendas'); return; }
+  const name = prompt('Nombre del look:', 'Look ' + (outfits.length + 1)) || ('Look ' + (outfits.length + 1));
+  outfits.unshift({ id: 'o' + Date.now(), name, ids: [...outfit], added: Date.now() });
+  saveData(); outfit = []; renderOutfitSlots(); renderOutfits();
+  toast('✨ "' + name + '" guardado!');
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────
+function renderStats() {
+  const total = items.reduce((s, i) => s + (i.price || 0), 0);
+  const byBrand = {}, byCat = {};
+  items.forEach(i => { byBrand[i.brand] = (byBrand[i.brand] || 0) + 1; });
+  items.forEach(i => { byCat[i.cat]   = (byCat[i.cat]   || 0) + 1; });
+
+  $('stats-content').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-card-title">Valor total del armario</div>
+      <div class="stat-big">${total.toFixed(2)}€</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">${items.length} prendas · media ${items.length ? (total/items.length).toFixed(2) : 0}€</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-title">Por marca</div>
+      ${Object.entries(byBrand).sort((a,b)=>b[1]-a[1]).map(([bid,n]) => {
+        const br = getBrand(bid);
+        const pct = items.length ? Math.round(n/items.length*100) : 0;
+        return `<div class="stat-bar-row">
+          <div class="stat-bar-label">${br.n}</div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%;background:${br.c}"></div></div>
+          <div class="stat-bar-count">${n}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-title">Por categoría</div>
+      ${Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([cid,n]) => {
+        const cat = getCat(cid);
+        return `<div class="stat-cat-row"><span>${cat.i} ${cat.l}</span><span style="font-weight:800;color:var(--pk)">${n}</span></div>`;
+      }).join('')}
+    </div>
+    <div class="stat-card" style="text-align:center">
+      <div class="stat-card-title">Favoritas</div>
+      <div style="font-size:36px;margin:8px 0">❤️</div>
+      <div class="stat-big">${items.filter(i=>i.fav).length}</div>
+    </div>`;
+}
+
+// ── INSTALL GUIDE ─────────────────────────────────────────────────────────
+function showInstall() { goTo('install'); }
+function renderInstall() {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode:standalone)').matches;
+
+  if (isStandalone) {
+    $('install-content').innerHTML = `<div class="install-guide" style="text-align:center">
+      <div style="font-size:40px;margin-bottom:10px">✅</div>
+      <div style="font-size:16px;font-weight:800;color:var(--green)">¡Closy ya está instalada!</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:6px">La estás usando como app nativa</div>
+    </div>`;
+    return;
+  }
+
+  if (isIOS) {
+    $('install-content').innerHTML = `
+      <div class="install-guide">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-text">Abre esta página en <strong>Safari</strong> (no en Chrome ni otro navegador)</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-text">Pulsa el icono de <strong>Compartir</strong> — el cuadrado con una flecha hacia arriba en la barra inferior</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          <div class="install-step-text">Desplázate y pulsa <strong>"Añadir a pantalla de inicio"</strong></div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">4</div>
+          <div class="install-step-text">Pulsa <strong>"Añadir"</strong> — ¡Closy aparecerá como app en tu iPhone!</div>
+        </div>
+      </div>`;
+  } else if (isAndroid) {
+    $('install-content').innerHTML = `
+      <div class="install-guide">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-text">Abre esta página en <strong>Chrome</strong></div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-text">Pulsa el menú de los <strong>tres puntos ⋮</strong> arriba a la derecha</div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          <div class="install-step-text">Pulsa <strong>"Añadir a pantalla de inicio"</strong> o <strong>"Instalar aplicación"</strong></div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">4</div>
+          <div class="install-step-text">Pulsa <strong>"Instalar"</strong> — ¡Listo! Closy aparecerá como app</div>
+        </div>
+      </div>
+      <div style="background:var(--pkl);border-radius:12px;padding:14px;font-size:13px;color:var(--pk);font-weight:600;line-height:1.5">
+        ⚠️ <strong>Importante:</strong> Esta opción solo aparece cuando abres la web desde una URL <strong>https://</strong>, no desde un archivo descargado. Si no te aparece, sigue las instrucciones de arriba para subir a Netlify.
+      </div>`;
+  }
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function goTo(page) {
+  curPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  $('page-' + page)?.classList.add('active');
+  $('nav-' + page)?.classList.add('active');
+
+  if (page === 'home')    renderHome();
+  if (page === 'outfits') { renderOutfitSlots(); renderOutfits(); }
+  if (page === 'favs')    renderFavs();
+  if (page === 'stats')   renderStats();
+  if (page === 'install') renderInstall();
+  closeFab();
+}
+
+// ── FAB ───────────────────────────────────────────────────────────────────
+function toggleFab() {
+  fabOpen = !fabOpen;
+  $('fab').classList.toggle('open', fabOpen);
+  $('fab-menu').classList.toggle('open', fabOpen);
+}
+function closeFab() {
+  fabOpen = false;
+  $('fab').classList.remove('open');
+  $('fab-menu').classList.remove('open');
+}
+function openAdd() { closeFab(); startAdd('manual'); }
+
+// ── SHEET ─────────────────────────────────────────────────────────────────
+function openSheet()  { $('add-backdrop').classList.add('open'); }
+function closeSheet() {
+  stopCamera();
+  $('add-backdrop').classList.remove('open');
+  $('detail-backdrop').classList.remove('open');
+}
+function closeSheetIfBackdrop(e, id) { if (e.target.id === id) { if (id === 'add-backdrop') stopCamera(); $(`#${id}`)?.classList.remove('open'); document.getElementById(id).classList.remove('open'); } }
+
+// ── ADD FLOWS ─────────────────────────────────────────────────────────────
+function startAdd(type) {
+  closeFab(); editingId = null;
+  const sh = $('add-sheet');
+
+  if (type === 'scan') {
+    sh.innerHTML = `<div class="sheet-handle"></div>
+      <div class="sheet-title">Escanear etiqueta 📷</div>
+      <div class="sheet-sub">La cámara detectará el código automáticamente</div>
+      <div class="scan-area">
+        <div class="scan-frame">
+          <video id="camera-video" playsinline autoplay muted></video>
+          <span class="scan-emoji-placeholder" id="scan-emoji">🏷️</span>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scan-info" id="scan-info">Iniciando cámara...</div>
+      </div>
+      <div class="status-bar show" id="scan-bar"><span class="spin">⟳</span> <span id="scan-bar-txt">Solicitando permiso de cámara...</span></div>
+      <div class="err-box" id="scan-err"></div>
+      <div id="scan-result"></div>
+      <button class="btn-secondary" onclick="stopCamera();startAdd('code')">⌨️ Usar código manual</button>
+      <button class="btn-secondary" onclick="closeSheet()">Cancelar</button>`;
+    openSheet();
+    setTimeout(startCamera, 400);
+
+  } else if (type === 'url') {
+    sh.innerHTML = `<div class="sheet-handle"></div>
+      <div class="sheet-title">URL de tienda 🔗</div>
+      <div class="sheet-sub">Pega el link del producto de la tienda</div>
+      <div class="brand-strip">${BRANDS.slice(0,9).map(b =>
+        `<span class="brand-chip" style="background:${b.c}" onclick="fillSampleUrl('${b.id}')">${b.n}</span>`
+      ).join('')}</div>
+      <label class="form-label">URL del producto</label>
+      <input class="form-input" id="url-input" type="url" placeholder="https://www.zara.com/...">
+      <div class="status-bar" id="url-bar"><span class="spin">⟳</span> <span id="url-bar-txt">Analizando...</span></div>
+      <div class="ok-box" id="url-ok"><div class="ok-box-label">✓ Tienda detectada</div><div class="ok-box-name" id="url-ok-name"></div><div class="ok-box-info" id="url-ok-info"></div></div>
+      <button class="btn-primary" onclick="processUrl()">Analizar y continuar</button>
+      <button class="btn-secondary" onclick="startAdd('manual')">Añadir manualmente</button>
+      <button class="btn-secondary" onclick="closeSheet()">Cancelar</button>`;
+    openSheet();
+
+  } else if (type === 'code') {
+    sh.innerHTML = `<div class="sheet-handle"></div>
+      <div class="sheet-title">Código de prenda ⌨️</div>
+      <div class="sheet-sub">Elige la tienda y escribe la referencia de la etiqueta</div>
+      <label class="form-label">Tienda</label>
+      <div class="brands-grid">${BRANDS.map(b =>
+        `<div class="brand-opt" id="bopt-${b.id}" onclick="selectBrand('${b.id}')">${b.n}</div>`
+      ).join('')}</div>
+      <label class="form-label">Código / Referencia</label>
+      <input class="form-input" id="code-input" placeholder="Ej: 4521-087, MNG-2234, SH-9934X"
+             autocomplete="off" autocorrect="off" oninput="onCodeInput()">
+      <div class="status-bar" id="code-bar"><span class="spin">⟳</span> Buscando...</div>
+      <div class="ok-box" id="code-ok"><div class="ok-box-label">✓ Referencia encontrada</div><div class="ok-box-name" id="code-ok-name"></div><div class="ok-box-info" id="code-ok-info"></div></div>
+      <button class="btn-primary" onclick="continueFromCode()">Continuar</button>
+      <button class="btn-secondary" onclick="closeSheet()">Cancelar</button>`;
+    openSheet();
+    window._selectedBrand = null;
+
+  } else {
+    showForm({});
+  }
+}
+
+// ── CAMERA ────────────────────────────────────────────────────────────────
+async function startCamera() {
+  const setBar = t => { const el = $('scan-bar-txt'); if (el) el.textContent = t; };
+  const hideBar = () => { const el = $('scan-bar'); if (el) el.classList.remove('show'); };
+  const setInfo = t => { const el = $('scan-info'); if (el) el.textContent = t; };
+  const showErr = html => {
+    const el = $('scan-err');
+    if (el) { el.innerHTML = html; el.classList.add('show'); }
+    hideBar();
+  };
+
+  // Check API availability first
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showErr(`<div style="font-size:22px;margin-bottom:8px">⚠️</div>
+      <strong style="color:var(--red)">Cámara no disponible</strong><br><br>
+      <span style="font-size:13px">Tu navegador no soporta acceso a la cámara.<br>
+      <strong>En iPhone</strong>: usa Safari.<br>
+      <strong>En Android</strong>: usa Chrome.<br>
+      La web debe abrirse por <strong>https://</strong></span>`);
+    return;
+  }
+
+  try {
+    setBar('Solicitando acceso a la cámara...');
+
+    // Try rear camera first, fall back to any camera
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+    } catch(e) {
+      // Fallback: any camera
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    }
+
+    camStream = stream;
+    const vid = $('camera-video');
+    if (!vid) { stopCamera(); return; }
+
+    vid.srcObject = stream;
+
+    // iOS Safari requires explicit attributes before play
+    vid.setAttribute('playsinline', '');
+    vid.setAttribute('autoplay', '');
+    vid.muted = true;
+
+    // Wait for video to be ready before playing
+    await new Promise((resolve, reject) => {
+      vid.onloadedmetadata = resolve;
+      vid.onerror = reject;
+      setTimeout(resolve, 3000); // safety timeout
+    });
+
+    try { await vid.play(); } catch(playErr) {
+      // Some browsers need user gesture — try silent fallback
+      vid.play().catch(() => {});
+    }
+
+    vid.style.display = 'block';
+    const em = $('scan-emoji');
+    if (em) em.style.display = 'none';
+    hideBar();
+
+    // BarcodeDetector API (Chrome Android, Chrome desktop, Safari 17.4+)
+    if ('BarcodeDetector' in window) {
+      setInfo('✓ Cámara activa — apunta al código de barras o etiqueta');
+      let bd;
+      try {
+        bd = new BarcodeDetector({
+          formats: ['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code','itf','data_matrix']
+        });
+      } catch(e) {
+        bd = new BarcodeDetector(); // sin formatos específicos como fallback
+      }
+
+      let running = true;
+      let scanCount = 0;
+      const MAX_SCANS = 150; // ~1 min de escaneo máximo
+
+      const scan = async () => {
+        if (!running || !$('camera-video') || scanCount > MAX_SCANS) return;
+        scanCount++;
+        try {
+          if (vid.readyState >= 2 && vid.videoWidth > 0) {
+            const found = await bd.detect(vid);
+            if (found && found.length > 0) {
+              running = false;
+              const code = found[0].rawValue;
+              stopCamera();
+              onCodeScanned(code);
+              return;
+            }
+          }
+        } catch(e) { /* ignore detection errors */ }
+        if (running) setTimeout(scan, 400);
+      };
+      setTimeout(scan, 1000);
+
+    } else {
+      // No BarcodeDetector — show camera + manual input fallback
+      setInfo('📷 Cámara activa — tu navegador no detecta códigos automáticamente');
+      const sr = $('scan-result');
+      if (sr) {
+        sr.innerHTML = `<div style="background:#fff3cd;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#856404;line-height:1.5">
+          ⚠️ <strong>Detección automática no disponible</strong> en este navegador.<br>
+          Escribe el código que ves en la etiqueta:
+        </div>
+        <input class="form-input" id="manual-scan-code" placeholder="Ej: 4521-087" autocomplete="off" style="margin-bottom:8px">
+        <button class="btn-primary" onclick="
+          var c=document.getElementById('manual-scan-code').value.trim();
+          if(c){stopCamera();onCodeScanned(c);}else{toast('Escribe un código primero');}
+        ">✓ Usar este código</button>`;
+      }
+    }
+
+  } catch(err) {
+    console.error('Camera error:', err.name, err.message);
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      showErr(`<div style="font-size:22px;margin-bottom:8px">🚫</div>
+        <strong style="color:var(--red)">Permiso de cámara denegado</strong><br><br>
+        <span style="font-size:13px">${isIOS
+          ? 'Ve a <strong>Ajustes → Safari → Cámara</strong> y selecciona "Permitir".'
+          : 'Ve a <strong>Ajustes del móvil → Apps → Chrome → Permisos → Cámara</strong> y actívalo.'
+        }<br>Luego cierra y vuelve a pulsar "Escanear".</span>`);
+    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      showErr(`<div style="font-size:22px;margin-bottom:8px">📵</div>
+        <strong style="color:var(--red)">No se encontró cámara</strong><br>
+        <span style="font-size:13px">El dispositivo no tiene cámara disponible. Usa "Código manual".</span>`);
+    } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+      showErr(`<div style="font-size:22px;margin-bottom:8px">🔒</div>
+        <strong style="color:var(--red)">Cámara en uso</strong><br>
+        <span style="font-size:13px">Otra aplicación está usando la cámara. Ciérrala y vuelve a intentarlo.</span>`);
+    } else if (err.name === 'OverconstrainedError') {
+      // Retry without constraints
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        camStream = stream;
+        const vid = $('camera-video');
+        if (vid) { vid.srcObject = stream; vid.muted = true; await vid.play(); vid.style.display = 'block'; }
+        const em = $('scan-emoji'); if (em) em.style.display = 'none';
+        hideBar();
+        setInfo('✓ Cámara activa (cámara frontal) — apunta al código');
+      } catch(e2) {
+        showErr(`<strong style="color:var(--red)">No se pudo abrir la cámara</strong><br><span style="font-size:13px">Usa "Código manual".</span>`);
+      }
+    } else {
+      showErr(`<div style="font-size:22px;margin-bottom:8px">❌</div>
+        <strong style="color:var(--red)">No se pudo abrir la cámara</strong><br>
+        <span style="font-size:13px">Error: ${err.name}.<br>
+        Asegúrate de abrir la app desde <strong>https://</strong> y no desde un archivo local.</span>`);
+    }
+  }
+}
+function stopCamera() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+}
+function onCodeScanned(code) {
+  const sr = $('scan-result');
+  if (sr) {
+    sr.innerHTML = `<div class="ok-box show">
+      <div class="ok-box-label">✓ Código escaneado</div>
+      <div class="ok-box-name">Ref: ${code}</div>
+      <div class="ok-box-info">Elige la tienda para buscar el producto</div>
+    </div>
+    <div class="brands-grid">${BRANDS.slice(0,9).map(b =>
+      `<div class="brand-opt" id="sbopt-${b.id}" onclick="brandForCode('${b.id}','${code}')">${b.n}</div>`
+    ).join('')}</div>`;
+  }
+}
+function brandForCode(brandId, code) {
+  document.querySelectorAll('[id^=sbopt-]').forEach(e => e.classList.remove('active'));
+  $('sbopt-' + brandId)?.classList.add('active');
+  window._scanState = { brand: brandId, code };
+  setTimeout(() => showForm({ brand: brandId, code }), 250);
+}
+
+// ── URL FLOW ──────────────────────────────────────────────────────────────
+function fillSampleUrl(brandId) {
+  $('url-input').value = `https://www.${brandId === 'hm' ? 'hm.com/es_es' : brandId + '.com/es'}/producto-${Math.floor(Math.random()*9000+1000)}`;
+}
+function processUrl() {
+  const url = ($('url-input')?.value || '').trim();
+  if (!url.startsWith('http')) { toast('Introduce una URL válida'); return; }
+  $('url-bar')?.classList.add('show');
+  $('url-ok')?.classList.remove('show');
+  let det = 'otro';
+  const ul = url.toLowerCase();
+  ['zara','mango','shein','bershka','stradivarius','lefties','nike','adidas'].forEach(k => { if (ul.includes(k)) det = k; });
+  if (ul.includes('hm.com')) det = 'hm';
+  if (ul.includes('pullandbear')) det = 'pullbear';
+  if (ul.includes('massimodutti')) det = 'massimo';
+  const br = getBrand(det);
+  setTimeout(() => {
+    $('url-bar')?.classList.remove('show');
+    const seg = url.split('/').filter(s => s && s.length > 3).pop() || 'producto';
+    const name = decodeURIComponent(seg).replace(/[-_]/g,' ').replace(/\b\w/g,l=>l.toUpperCase()).substring(0, 40);
+    const okn = $('url-ok-name'); if (okn) okn.textContent = name;
+    const oki = $('url-ok-info'); if (oki) oki.textContent = br.n + ' · URL guardada';
+    $('url-ok')?.classList.add('show');
+    setTimeout(() => showForm({ brand: det, name, shopUrl: url }), 500);
+  }, 900);
+}
+
+// ── CODE FLOW ─────────────────────────────────────────────────────────────
+function selectBrand(id) {
+  window._selectedBrand = id;
+  document.querySelectorAll('.brand-opt').forEach(e => e.classList.remove('active'));
+  $('bopt-' + id)?.classList.add('active');
+  onCodeInput();
+}
+function onCodeInput() {
+  const code = ($('code-input')?.value || '').trim();
+  if (!window._selectedBrand || code.length < 3) return;
+  $('code-bar')?.classList.add('show');
+  $('code-ok')?.classList.remove('show');
+  clearTimeout(window._codeTimer);
+  window._codeTimer = setTimeout(() => {
+    $('code-bar')?.classList.remove('show');
+    const br = getBrand(window._selectedBrand);
+    const url = br.url + encodeURIComponent(code);
+    const n = $('code-ok-name'); if (n) n.textContent = `Ref: ${code} — ${br.n}`;
+    const i = $('code-ok-info'); if (i) i.innerHTML = `<a href="${url}" target="_blank" style="color:var(--pk);font-weight:700;text-decoration:none">Ver en ${br.n} →</a>`;
+    $('code-ok')?.classList.add('show');
+  }, 800);
+}
+function continueFromCode() {
+  if (!window._selectedBrand) { toast('Elige una tienda primero'); return; }
+  const code = ($('code-input')?.value || '').trim();
+  showForm({ brand: window._selectedBrand, code });
+}
+
+// ── FORM ──────────────────────────────────────────────────────────────────
+function showForm(prefill = {}) {
+  const isEdit = !!editingId;
+  const item = isEdit ? items.find(i => i.id === editingId) : null;
+  const d = item || prefill;
+  photoData = '';
+
+  $('add-sheet').innerHTML = `<div class="sheet-handle"></div>
+    <div class="sheet-title">${isEdit ? 'Editar prenda ✏️' : 'Nueva prenda ✏️'}</div>
+    <div class="sheet-sub">${isEdit ? 'Cambia lo que necesites' : 'Solo el nombre es obligatorio'}</div>
+
+    <label class="form-label">Foto de la prenda</label>
+    <div class="photo-area${d.photo ? ' has-photo' : ''}" id="photo-area">
+      <input type="file" id="photo-file" accept="image/*" onchange="onPhotoSelected(this)">
+      <img class="photo-preview" id="photo-preview" ${d.photo ? `src="${d.photo}" style="display:block"` : ''}>
+      <div id="photo-placeholder" ${d.photo ? 'style="display:none"' : ''}>
+        <div class="photo-placeholder-icon">📸</div>
+        <div class="photo-placeholder-text">Toca para añadir foto</div>
+        <div class="photo-placeholder-sub">Cámara o galería · se guarda en el dispositivo</div>
+      </div>
+    </div>
+
+    <label class="form-label">Nombre *</label>
+    <input class="form-input" id="f-name" placeholder="Ej: Vestido midi satén" value="${d.name || d.n || ''}">
+
+    <label class="form-label">Marca</label>
+    <select class="form-select" id="f-brand">
+      ${BRANDS.map(b => `<option value="${b.id}" ${(d.brand || d.b || 'otro') === b.id ? 'selected' : ''}>${b.n}</option>`).join('')}
+    </select>
+
+    <label class="form-label">Categoría</label>
+    <select class="form-select" id="f-cat">
+      ${CATS.filter(c => c.id !== 'all').map(c => `<option value="${c.id}" ${(d.cat || d.c || 'tops') === c.id ? 'selected' : ''}>${c.i} ${c.l}</option>`).join('')}
+    </select>
+
+    <label class="form-label">Código / Referencia</label>
+    <input class="form-input" id="f-code" placeholder="Ej: 4521-087" value="${d.code || ''}">
+
+    <label class="form-label">Precio (€)</label>
+    <input class="form-input" id="f-price" type="number" step="0.01" min="0" placeholder="29.99"
+           value="${d.price && d.price > 0 ? d.price : ''}">
+
+    <label class="form-label">Icono (si no hay foto)</label>
+    <div class="emoji-grid">
+      ${EMOJIS.map(e => `<span class="emoji-opt ${(d.emoji || d.em || '👗') === e ? 'active' : ''}" onclick="pickEmoji(this,'${e}')">${e}</span>`).join('')}
+    </div>
+    <input class="form-input" id="f-emoji" maxlength="2" value="${d.emoji || d.em || '👗'}"
+           style="width:58px;text-align:center;font-size:22px;padding:8px;margin-top:-6px">
+
+    <button class="btn-primary" onclick="submitForm()">${isEdit ? '💾 Guardar cambios' : '🎉 Añadir al armario'}</button>
+    ${isEdit ? `<button class="btn-secondary btn-danger" onclick="if(confirm('¿Eliminar esta prenda?')){deleteItem('${editingId}')}">🗑 Eliminar prenda</button>` : ''}
+    <button class="btn-secondary" onclick="closeSheet()">Cancelar</button>`;
+
+  window._shopUrl = d.shopUrl || '';
+  openSheet();
+}
+
+function onPhotoSelected(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // Compress to max 800px, JPEG 80%
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > h && w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      else if (h > w && h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      else if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      photoData = canvas.toDataURL('image/jpeg', 0.80);
+      const pv = $('photo-preview'), ph = $('photo-placeholder'), pa = $('photo-area');
+      if (pv) { pv.src = photoData; pv.style.display = 'block'; }
+      if (ph) ph.style.display = 'none';
+      if (pa) pa.classList.add('has-photo');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function pickEmoji(el, e) {
+  document.querySelectorAll('.emoji-opt').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  $('f-emoji').value = e;
+}
+
+function submitForm() {
+  const name = ($('f-name')?.value || '').trim();
+  if (!name) { toast('Ponle un nombre a la prenda 😊'); return; }
+
+  // Read all fields explicitly
+  const brand   = $('f-brand')?.value || 'otro';
+  const cat     = $('f-cat')?.value || 'tops';      // THIS is the critical fix
+  const code    = ($('f-code')?.value || '').trim();
+  const price   = parseFloat($('f-price')?.value) || 0;
+  const emoji   = $('f-emoji')?.value || '👗';
+
+  // Photo: new if selected, otherwise keep existing
+  const existingPhoto = editingId ? (items.find(i => i.id === editingId)?.photo || '') : '';
+  const photo = photoData || existingPhoto;
+
+  const shopUrl = window._shopUrl || (getBrand(brand).url + (code || name));
+
+  if (editingId) {
+    const idx = items.findIndex(i => i.id === editingId);
+    if (idx >= 0) Object.assign(items[idx], { name, brand, cat, code, price, emoji, photo });
+    editingId = null;
+    toast('✓ Prenda actualizada!');
+  } else {
+    items.unshift({ id: 'i' + Date.now(), name, brand, cat, code, price, emoji, photo, shopUrl, fav: false, added: Date.now() });
+    toast(`✓ "${name}" añadida al armario!`);
+  }
+
+  photoData = '';
+  window._shopUrl = '';
+  saveData();
+  closeSheet();
+  curCat = 'all';
+  renderCats();
+  renderHome();
+}
+
+// ── TOGGLE FAV ────────────────────────────────────────────────────────────
+function toggleFav(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item.fav = !item.fav;
+  saveData();
+  if (curPage === 'favs') renderFavs(); else renderHome();
+}
+
+// ── DETAIL ────────────────────────────────────────────────────────────────
+function openDetail(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  const br = getBrand(item.brand);
+  const shopUrl = item.shopUrl || (br.url ? br.url + encodeURIComponent(item.code || item.name) : '');
+  $('detail-card').innerHTML = `
+    <div class="detail-img">
+      ${item.photo ? `<img src="${item.photo}" onerror="this.style.display='none'" loading="lazy">` : ''}
+      <div class="detail-emoji">${item.emoji || '👗'}</div>
+      <button class="detail-close" onclick="closeSheet()">✕</button>
+      ${shopUrl ? `<button class="detail-shop" data-shop-url="${shopUrl.replace(/"/g,'&quot;')}" onclick="var u=this.getAttribute('data-shop-url');if(u)window.open(u,'_blank')">Ver en tienda →</button>` : ''}
+    </div>
+    <div class="detail-body">
+      <div class="detail-brand-pill" style="background:${br.c}">${br.n}</div>
+      <div class="detail-name">${item.name}</div>
+      <div class="detail-code">${item.code ? 'Ref: ' + item.code : ''}</div>
+      <div class="detail-row">
+        <div class="detail-price">${item.price ? item.price.toFixed(2) + '€' : 'Sin precio'}</div>
+        <div class="detail-cat-pill">${getCat(item.cat).i} ${getCat(item.cat).l}</div>
+      </div>
+      <div class="detail-btns">
+        <button class="detail-btn" onclick="toggleFav('${item.id}');closeSheet()">${item.fav ? '❤️ Quitar fav' : '🤍 Favorita'}</button>
+        <button class="detail-btn" onclick="editItem('${item.id}')">✏️ Editar</button>
+      </div>
+      <div class="detail-btns">
+        <button class="detail-btn" onclick="addToOutfitFromDetail('${item.id}')">✨ Al outfit</button>
+        <button class="detail-btn danger" onclick="if(confirm('¿Eliminar?')){deleteItem('${item.id}')}">🗑 Eliminar</button>
+      </div>
+    </div>`;
+  $('detail-backdrop').classList.add('open');
+}
+
+function editItem(id) {
+  editingId = id;
+  closeSheet();
+  setTimeout(() => showForm({}), 80);
+}
+function addToOutfitFromDetail(id) {
+  if (!outfit.includes(id)) outfit.push(id);
+  closeSheet();
+  goTo('outfits');
+  toast('Prenda añadida al outfit ✨');
+}
+function deleteItem(id) {
+  items = items.filter(i => i.id !== id);
+  saveData();
+  closeSheet();
+  renderHome();
+  toast('Prenda eliminada');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── GLOBAL CLICKS ─────────────────────────────────────────────────────────
+document.addEventListener('click', e => {
+  if (fabOpen && !e.target.closest('.fab') && !e.target.closest('.fab-menu')) closeFab();
+});
+</script>
+</body>
+</html>
