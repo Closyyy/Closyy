@@ -313,6 +313,7 @@ html,body{height:100%;overflow:hidden;background:var(--dk);font-family:-apple-sy
       <input class="auth-input" id="login-email" type="email" placeholder="Tu email" autocomplete="email">
       <input class="auth-input" id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password">
       <button class="auth-btn" onclick="doLogin()">Entrar →</button>
+      <div style="text-align:center;margin-top:10px"><span onclick="doForgotPassword()" style="font-size:13px;color:rgba(255,255,255,.4);cursor:pointer;text-decoration:underline">¿Olvidaste tu contraseña?</span></div>
     </div>
     <div id="auth-form-register" style="display:none">
       <input class="auth-input" id="reg-name" type="text" placeholder="Tu nombre" autocomplete="name">
@@ -423,7 +424,7 @@ html,body{height:100%;overflow:hidden;background:var(--dk);font-family:-apple-sy
 
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,signOut,onAuthStateChanged,updateProfile}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,signOut,onAuthStateChanged,updateProfile,sendPasswordResetEmail,updatePassword,EmailAuthProvider,reauthenticateWithCredential}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import{getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc,query,orderBy}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import{getStorage,ref,uploadString,getDownloadURL,deleteObject}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
@@ -597,14 +598,64 @@ async function uploadPhoto(itemId,b64){
 window.showProfile=()=>{
   if(!curUser)return;
   const u=curUser,ini=(u.displayName||u.email||'?')[0].toUpperCase();
+  const isGoogle=u.providerData?.some(p=>p.providerId==='google.com');
   $('add-sheet').innerHTML=`<div class="sheet-handle"></div>
     <div class="profile-av">${u.photoURL?`<img src="${u.photoURL}" referrerpolicy="no-referrer">`:ini}</div>
     <div class="profile-name">${u.displayName||'Sin nombre'}</div>
     <div class="profile-email">${u.email}</div>
-    <button class="btn-secondary btn-danger" onclick="doLogout()">🚪 Cerrar sesión</button>
+    ${!isGoogle?`<button class="btn-secondary" onclick="showChangePassword()" style="margin-top:12px">🔑 Cambiar contraseña</button>`:''}
+    <button class="btn-secondary btn-danger" onclick="doLogout()" style="margin-top:8px">🚪 Cerrar sesión</button>
     <button class="btn-secondary" onclick="closeSheet()">Cancelar</button>`;
   openSheet();
 };
+
+window.showChangePassword=()=>{
+  $('add-sheet').innerHTML=`<div class="sheet-handle"></div>
+    <div class="sheet-title">🔑 Cambiar contraseña</div>
+    <div class="sheet-sub">Introduce tu contraseña actual y la nueva</div>
+    <label class="form-label">Contraseña actual</label>
+    <input class="form-input" id="cp-current" type="password" placeholder="Contraseña actual">
+    <label class="form-label">Nueva contraseña</label>
+    <input class="form-input" id="cp-new" type="password" placeholder="Nueva contraseña (mín. 6 caracteres)">
+    <label class="form-label">Repetir nueva contraseña</label>
+    <input class="form-input" id="cp-new2" type="password" placeholder="Repite la nueva contraseña">
+    <div id="cp-msg" style="font-size:13px;color:#ff6b6b;min-height:18px;margin-bottom:8px"></div>
+    <button class="btn-primary" onclick="doChangePassword()">Cambiar contraseña</button>
+    <button class="btn-secondary" onclick="showProfile()">← Volver</button>`;
+};
+
+window.doChangePassword=async()=>{
+  const current=$('cp-current').value;
+  const n1=$('cp-new').value;
+  const n2=$('cp-new2').value;
+  const msg=$('cp-msg');
+  if(!current||!n1||!n2){msg.textContent='Rellena todos los campos';return;}
+  if(n1.length<6){msg.textContent='La nueva contraseña debe tener al menos 6 caracteres';return;}
+  if(n1!==n2){msg.textContent='Las contraseñas nuevas no coinciden';return;}
+  try{
+    const credential=EmailAuthProvider.credential(curUser.email,current);
+    await reauthenticateWithCredential(curUser,credential);
+    await updatePassword(curUser,n1);
+    closeSheet();
+    toast('✅ Contraseña cambiada correctamente');
+  }catch(e){
+    if(e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')msg.textContent='La contraseña actual es incorrecta';
+    else msg.textContent='Error: '+e.message;
+  }
+};
+
+window.doForgotPassword=async()=>{
+  const email=$('login-email').value.trim();
+  if(!email){setMsg('Introduce tu email primero');return;}
+  try{
+    await sendPasswordResetEmail(auth,email);
+    setMsg('✅ Email enviado, revisa tu bandeja de entrada',false);
+  }catch(e){
+    if(e.code==='auth/user-not-found')setMsg('No existe una cuenta con ese email');
+    else setMsg('Error al enviar el email');
+  }
+};
+
 window.doLogout=async()=>{
   if(!confirm('¿Cerrar sesión?'))return;
   closeSheet();await signOut(auth);toast('¡Hasta pronto! 👋');
