@@ -1058,17 +1058,39 @@ window.openAIOutfit = () => {
   const sh = $('add-sheet');
   sh.innerHTML = `<div class="sheet-handle"></div>
     <div class="sheet-title">🤖 Crear outfit con IA</div>
-    <div class="sheet-sub">Cuéntame para qué lo necesitas y la IA elegirá las mejores prendas de tu armario</div>
-    <label class="form-label">¿Cuál es la ocasión?</label>
-    <textarea class="ai-sheet-input" id="ai-occasion" rows="2" placeholder="Ej: cena romántica, día de trabajo, brunch con amigas, fiesta..."></textarea>
-    <label class="form-label">¿Cómo está el tiempo?</label>
-    <div class="ai-climate-row" id="ai-climate-row">
-      <div class="ai-climate-chip" onclick="toggleClimate(this)">☀️ Calor</div>
-      <div class="ai-climate-chip" onclick="toggleClimate(this)">🌤 Templado</div>
-      <div class="ai-climate-chip" onclick="toggleClimate(this)">🌧 Lluvia</div>
-      <div class="ai-climate-chip" onclick="toggleClimate(this)">🧥 Frío</div>
-      <div class="ai-climate-chip" onclick="toggleClimate(this)">❄️ Mucho frío</div>
+    <div class="sheet-sub">Elige tus preferencias y la IA creará el look perfecto</div>
+
+    <label class="form-label">🎉 Ocasión</label>
+    <div class="ai-climate-row">
+      <div class="ai-climate-chip" data-group="occasion" onclick="toggleChip(this)">💼 Trabajo</div>
+      <div class="ai-climate-chip" data-group="occasion" onclick="toggleChip(this)">🍽️ Cena</div>
+      <div class="ai-climate-chip" data-group="occasion" onclick="toggleChip(this)">🥂 Fiesta</div>
+      <div class="ai-climate-chip" data-group="occasion" onclick="toggleChip(this)">☕ Casual</div>
+      <div class="ai-climate-chip" data-group="occasion" onclick="toggleChip(this)">🏃 Deporte</div>
+      <div class="ai-climate-chip" data-group="occasion" onclick="toggleChip(this)">✈️ Viaje</div>
+      <div class="ai-climate-chip" data-group="occasion" onclick="toggleChip(this)">🛍️ Compras</div>
+      <div class="ai-climate-chip" data-group="occasion" onclick="toggleChip(this)">🌿 Naturaleza</div>
     </div>
+
+    <label class="form-label">👗 Estilo</label>
+    <div class="ai-climate-row">
+      <div class="ai-climate-chip" data-group="style" onclick="toggleChip(this)">✨ Elegante</div>
+      <div class="ai-climate-chip" data-group="style" onclick="toggleChip(this)">😎 Informal</div>
+      <div class="ai-climate-chip" data-group="style" onclick="toggleChip(this)">🌸 Romántico</div>
+      <div class="ai-climate-chip" data-group="style" onclick="toggleChip(this)">🖤 Minimalista</div>
+      <div class="ai-climate-chip" data-group="style" onclick="toggleChip(this)">🎨 Colorido</div>
+      <div class="ai-climate-chip" data-group="style" onclick="toggleChip(this)">🤍 Clásico</div>
+    </div>
+
+    <label class="form-label">🌡️ Clima</label>
+    <div class="ai-climate-row">
+      <div class="ai-climate-chip" data-group="climate" onclick="toggleChip(this)">☀️ Calor</div>
+      <div class="ai-climate-chip" data-group="climate" onclick="toggleChip(this)">🌤 Templado</div>
+      <div class="ai-climate-chip" data-group="climate" onclick="toggleChip(this)">🌧 Lluvia</div>
+      <div class="ai-climate-chip" data-group="climate" onclick="toggleChip(this)">🧥 Frío</div>
+      <div class="ai-climate-chip" data-group="climate" onclick="toggleChip(this)">❄️ Mucho frío</div>
+    </div>
+
     <div class="ai-thinking" id="ai-thinking">
       <div class="ai-thinking-dots">
         <div class="ai-thinking-dot"></div><div class="ai-thinking-dot"></div><div class="ai-thinking-dot"></div>
@@ -1081,18 +1103,27 @@ window.openAIOutfit = () => {
   openSheet();
 };
 
+window.toggleChip = el => {
+  const group = el.dataset.group;
+  document.querySelectorAll(`.ai-climate-chip[data-group="${group}"]`).forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+};
+
 window.toggleClimate = el => {
   document.querySelectorAll('.ai-climate-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
 };
 
 window.runAIOutfit = async () => {
-  const occasion = ($('ai-occasion')?.value || '').trim();
-  const climateEl = document.querySelector('.ai-climate-chip.active');
-  const climate = climateEl ? climateEl.textContent : '';
+  const occasionEl = document.querySelector('.ai-climate-chip[data-group="occasion"].active');
+  const styleEl = document.querySelector('.ai-climate-chip[data-group="style"].active');
+  const climateEl = document.querySelector('.ai-climate-chip[data-group="climate"].active');
+  const occasion = occasionEl ? occasionEl.textContent.trim() : '';
+  const style = styleEl ? styleEl.textContent.trim() : '';
+  const climate = climateEl ? climateEl.textContent.trim() : '';
   if (!GEMINI_KEY || GEMINI_KEY === 'TU_GEMINI_API_KEY') { toast('⚠️ Añade tu API key de Gemini en el código'); return; }
-  if (!occasion) { toast('Describe la ocasión primero 😊'); return; }
-  if (!climate)  { toast('Elige el tiempo que hace'); return; }
+  if (!occasion) { toast('Elige la ocasión 😊'); return; }
+  if (!climate)  { toast('Elige el clima'); return; }
 
   $('ai-go-btn').style.display = 'none';
   $('ai-result').classList.remove('show');
@@ -1135,7 +1166,7 @@ window.runAIOutfit = async () => {
   // Texto inicial con instrucciones
   parts.push({ text: `Eres una estilista personal experta con visión real de las prendas. Analiza VISUALMENTE las fotos de ropa del armario y crea el mejor outfit posible.
 
-PETICIÓN: Ocasión: ${occasion} | Clima: ${climate}
+PETICIÓN: Ocasión: ${occasion} | Estilo: ${style||'libre'} | Clima: ${climate}
 
 A continuación verás las fotos reales de las prendas disponibles. Cada prenda va precedida de su ID y datos. Usa las fotos para evaluar colores, texturas, estilos y patrones reales.
 
