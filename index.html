@@ -1540,16 +1540,21 @@ Responde SOLO con este JSON exacto, sin texto extra ni markdown:
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
+      mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer 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',
-        'HTTP-Referer': 'https://closyyy.github.io',
-        'X-Title': 'Closy'
+        'HTTP-Referer': 'https://closyyy.github.io/Closyy/',
+        'X-Title': 'Closy App'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 600
+        model: 'mistralai/mistral-7b-instruct:free',
+        messages: [
+          { role: 'system', content: 'Eres una estilista personal experta. Responde SOLO con JSON válido, sin texto extra ni markdown.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 600,
+        temperature: 0.7
       })
     });
     clearInterval(ticker);
