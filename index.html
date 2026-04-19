@@ -792,19 +792,29 @@ window.doRegister=async()=>{
 window.doGoogleLogin=async()=>{
   setMsg('Abriendo Google...',false);
   try{
-    await signInWithRedirect(auth,gp);
+    gp.setCustomParameters({prompt:'select_account'});
+    const result = await signInWithPopup(auth,gp);
+    if(result?.user) enterApp(result.user);
   }
-  catch(e){if(e.code!=='auth/popup-closed-by-user')setMsg(friendlyErr(e.code));else setMsg('');}
+  catch(e){
+    if(e.code==='auth/popup-blocked'){
+      setMsg('Popups bloqueados — intenta desde Chrome');
+    } else if(e.code!=='auth/popup-closed-by-user'){
+      setMsg(friendlyErr(e.code));
+    } else {
+      setMsg('');
+    }
+  }
 };
 
-// Handle redirect result on page load
+// Handle redirect result on page load (fallback)
 (async()=>{
   try{
     if(auth){
       const result = await getRedirectResult(auth);
       if(result?.user) enterApp(result.user);
     }
-  }catch(e){console.log('redirect result error',e);}
+  }catch(e){}
 })();
 
 // ── AUTH STATE ────────────────────────────────────────
