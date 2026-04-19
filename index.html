@@ -1492,86 +1492,50 @@ window.runAIOutfit = async () => {
   const occasion = occasionEl ? occasionEl.textContent.trim() : '';
   const style = styleEl ? styleEl.textContent.trim() : '';
   const climate = climateEl ? climateEl.textContent.trim() : '';
+  const voiceText = ($('voice-transcript')?.textContent || '').replace(/"/g,'').trim();
+
   if (!GEMINI_KEY || GEMINI_KEY === 'TU_GEMINI_API_KEY') { toast('⚠️ Añade tu API key de Gemini en el código'); return; }
-  if (!occasion) { toast('Elige la ocasión 😊'); return; }
-  if (!climate)  { toast('Elige el clima'); return; }
+
+  // Si hay texto de voz no hace falta chips obligatorios
+  if (!voiceText) {
+    if (!occasion) { toast('Elige la ocasión 😊'); return; }
+    if (!climate)  { toast('Elige el clima'); return; }
+  }
+
+  // Construir descripción del contexto
+  const contexto = voiceText
+    ? `Petición por voz: "${voiceText}"${occasion ? ' | Ocasión: '+occasion : ''}${style ? ' | Estilo: '+style : ''}${climate ? ' | Clima: '+climate : ''}`
+    : `Ocasión: ${occasion} | Estilo: ${style||'libre'} | Clima: ${climate}`;
 
   $('ai-go-btn').style.display = 'none';
   $('ai-result').classList.remove('show');
   const thinking = $('ai-thinking');
   thinking.classList.add('show');
 
-  const msgs = ['Cargando fotos del armario...','Analizando colores y estilos...','Combinando prendas...','Casi listo...'];
+  const msgs = ['Analizando tu armario...','Combinando prendas...','Eligiendo el mejor look...','Casi listo...'];
   let ti = 0;
   const ticker = setInterval(() => { ti=(ti+1)%msgs.length; const e=$('ai-thinking-txt'); if(e)e.textContent=msgs[ti]; }, 1800);
 
-  // ── Convertir fotos URL a base64 para enviar a Gemini Vision ──
-  async function urlToBase64(url) {
-    try {
-      // Si ya es base64 data URL, extraer solo los datos
-      if (url.startsWith('data:image')) {
-        const parts = url.split(',');
-        const mime = parts[0].split(':')[1].split(';')[0];
-        return { data: parts[1], mimeType: mime };
-      }
-      // Si es URL remota (Firebase Storage), fetch y convertir
-      const res = await fetch(url);
-      const blob = await res.blob();
-      return await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const parts = reader.result.split(',');
-          resolve({ data: parts[1], mimeType: blob.type || 'image/jpeg' });
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch(e) {
-      return null; // foto no disponible, se usará descripción de texto
-    }
-  }
+  // Construir lista de prendas en texto (sin fotos para evitar errores de tamaño)
+  const prendasTexto = items.map(item =>
+    `- ID:${item.id} | ${item.name} | ${getBrand(item.brand).n} | ${getCat(item.cat).l}${item.fav?' | FAVORITA':''}${item.price?' | '+item.price+'€':''}`
+  ).join('\n');
 
-  // Preparar partes del mensaje para Gemini: texto + imágenes
-  const parts = [];
+  const prompt = `Eres una estilista personal experta. Crea el mejor outfit posible con estas prendas.
 
-  // Texto inicial con instrucciones
-  parts.push({ text: `Eres una estilista personal experta con visión real de las prendas. Analiza VISUALMENTE las fotos de ropa del armario y crea el mejor outfit posible.
+${contexto}
 
-PETICIÓN: Ocasión: ${occasion} | Estilo: ${style||'libre'} | Clima: ${climate}
+PRENDAS DISPONIBLES:
+${prendasTexto}
 
-A continuación verás las fotos reales de las prendas disponibles. Cada prenda va precedida de su ID y datos. Usa las fotos para evaluar colores, texturas, estilos y patrones reales.
-
-PRENDAS DEL ARMARIO:` });
-
-  // Añadir cada prenda: texto con su info + foto si tiene
-  for (const item of items) {
-    const info = `[ID: ${item.id} | ${item.name} | ${getBrand(item.brand).n} | ${getCat(item.cat).l}${item.fav ? ' | ❤️ FAVORITA' : ''}]`;
-    parts.push({ text: info });
-
-    if (item.photo) {
-      const imgData = await urlToBase64(item.photo);
-      if (imgData) {
-        parts.push({ inlineData: { mimeType: imgData.mimeType, data: imgData.data } });
-      } else {
-        parts.push({ text: `(foto no disponible, icono: ${item.emoji || '👗'})` });
-      }
-    } else {
-      parts.push({ text: `(sin foto, icono: ${item.emoji || '👗'})` });
-    }
-  }
-
-  // Instrucciones finales y formato de respuesta
-  parts.push({ text: `
-REGLAS PARA CREAR EL OUTFIT:
-- Selecciona 3-5 prendas que formen un outfit completo y visualmente cohesionado
-- Basa tu elección en los COLORES y ESTILOS REALES que ves en las fotos
-- Prioriza favoritas (❤️) si encajan bien
-- Ten en cuenta el clima: ${climate}
-- Las prendas deben combinar entre sí visualmente (colores, estilos, ocasión)
-- Piensa en un look completo: parte de arriba, abajo, calzado y/o complementos si los hay
+REGLAS:
+- Selecciona 3-5 prendas que formen un outfit completo y cohesionado
+- Prioriza favoritas si encajan
+- Piensa en un look completo: parte de arriba, abajo, calzado y/o accesorios si los hay
+- Las prendas deben combinar bien entre sí
 
 Responde SOLO con este JSON exacto, sin texto extra ni markdown:
-{"outfitName":"nombre creativo máx 4 palabras","selectedIds":["id1","id2","id3"],"why":"2-3 frases cercanas explicando qué ves en las fotos y por qué estas prendas combinan bien para la ocasión y clima"}` });
+{"outfitName":"nombre creativo máx 4 palabras","selectedIds":["id1","id2","id3"],"why":"2-3 frases explicando por qué estas prendas combinan bien para la ocasión"}`;
 
   try {
     const res = await fetch(
@@ -1580,7 +1544,7 @@ Responde SOLO con este JSON exacto, sin texto extra ni markdown:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts }],
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.7, maxOutputTokens: 600 }
         })
       }
@@ -1589,7 +1553,7 @@ Responde SOLO con este JSON exacto, sin texto extra ni markdown:
     thinking.classList.remove('show');
     if (!res.ok) {
       const err = await res.json().catch(()=>({}));
-      if (res.status === 400 || res.status === 403) throw new Error('API key de Gemini incorrecta. Compruébala en aistudio.google.com');
+      if (res.status === 400 || res.status === 403) throw new Error('API key de Gemini incorrecta');
       throw new Error('Error ' + res.status + ': ' + (err.error?.message || ''));
     }
     const data = await res.json();
@@ -1598,7 +1562,7 @@ Responde SOLO con este JSON exacto, sin texto extra ni markdown:
     try { parsed = JSON.parse(raw); } catch(e) { throw new Error('Respuesta inesperada de la IA'); }
 
     const selected = (parsed.selectedIds || []).map(id => items.find(i => i.id === id)).filter(Boolean);
-    if (!selected.length) throw new Error('La IA no encontró prendas adecuadas en tu armario');
+    if (!selected.length) throw new Error('La IA no encontró prendas adecuadas');
 
     window._aiOutfit = { name: parsed.outfitName || 'Mi look IA', ids: selected.map(i => i.id) };
 
