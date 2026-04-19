@@ -1539,7 +1539,7 @@ Responde SOLO con este JSON exacto, sin texto extra ni markdown:
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1553,8 +1553,8 @@ Responde SOLO con este JSON exacto, sin texto extra ni markdown:
     thinking.classList.remove('show');
     if (!res.ok) {
       const err = await res.json().catch(()=>({}));
-      if (res.status === 400 || res.status === 403) throw new Error('API key de Gemini incorrecta');
-      throw new Error('Error ' + res.status + ': ' + (err.error?.message || ''));
+      if (res.status === 400 || res.status === 403) throw new Error('API key incorrecta o sin permisos');
+      throw new Error('Error ' + res.status + ': ' + (err.error?.message || JSON.stringify(err)));
     }
     const data = await res.json();
     const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```json|```/g,'').trim();
