@@ -1538,13 +1538,18 @@ Responde SOLO con este JSON exacto, sin texto extra ni markdown:
 {"outfitName":"nombre creativo máx 4 palabras","selectedIds":["id1","id2","id3"],"why":"2-3 frases explicando por qué estas prendas combinan bien para la ocasión"}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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',
+        'HTTP-Referer': 'https://closyyy.github.io',
+        'X-Title': 'Closy'
+      },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
-        messages: [{ role: 'user', content: prompt }]
+        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 600
       })
     });
     clearInterval(ticker);
@@ -1554,7 +1559,7 @@ Responde SOLO con este JSON exacto, sin texto extra ni markdown:
       throw new Error('Error ' + res.status + ': ' + (err.error?.message || JSON.stringify(err)));
     }
     const data = await res.json();
-    const raw = (data.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
+    const raw = (data.choices?.[0]?.message?.content || '').replace(/```json|```/g,'').trim();
     let parsed;
     try { parsed = JSON.parse(raw); } catch(e) { throw new Error('Respuesta inesperada de la IA'); }
 
