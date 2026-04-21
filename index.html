@@ -558,6 +558,20 @@ html,body{height:100%;overflow:hidden;background:var(--dk);font-family:'Nunito',
   </div>
 </div>
 
+<!-- ══ RESET PASSWORD SCREEN ══ -->
+<div id="reset-screen" style="display:none;position:fixed;inset:0;background:linear-gradient(160deg,#0A0A0A 0%,#1A1A1A 100%);z-index:9998;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px">
+  <div class="auth-brand">clos<span>y</span></div>
+  <div class="auth-sub">nueva contraseña</div>
+  <div class="auth-card">
+    <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:4px">🔑 Crear nueva contraseña</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:16px">Introduce tu nueva contraseña</div>
+    <input class="auth-input" id="reset-pass1" type="password" placeholder="Nueva contraseña (mín. 6 caracteres)">
+    <input class="auth-input" id="reset-pass2" type="password" placeholder="Repite la contraseña">
+    <button class="auth-btn" onclick="doResetPassword()">Guardar contraseña →</button>
+    <div class="auth-msg" id="reset-msg"></div>
+  </div>
+</div>
+
 <!-- ══ AUTH ══ -->
 <div id="auth-screen">
   <div class="auth-brand">clos<span>y</span></div>
@@ -681,7 +695,7 @@ html,body{height:100%;overflow:hidden;background:var(--dk);font-family:'Nunito',
 
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signInWithPopup,signInWithRedirect,getRedirectResult,GoogleAuthProvider,signOut,onAuthStateChanged,updateProfile,sendPasswordResetEmail,updatePassword,EmailAuthProvider,reauthenticateWithCredential}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signInWithPopup,signInWithRedirect,getRedirectResult,GoogleAuthProvider,signOut,onAuthStateChanged,updateProfile,sendPasswordResetEmail,updatePassword,EmailAuthProvider,reauthenticateWithCredential,confirmPasswordReset,verifyPasswordResetCode}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import{getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc,query,orderBy}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import{getStorage,ref,uploadString,getDownloadURL,deleteObject}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
@@ -715,6 +729,39 @@ const auth = configured ? getAuth(app) : null;
 const db   = configured ? getFirestore(app) : null;
 const stor = configured ? getStorage(app) : null;
 const gp   = configured ? new GoogleAuthProvider() : null;
+
+// ── DETECTAR RESET DE CONTRASEÑA EN LA URL ────────────
+let resetOobCode = null;
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('mode') === 'resetPassword' && urlParams.get('oobCode')) {
+  resetOobCode = urlParams.get('oobCode');
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('reset-screen').style.display = 'flex';
+}
+
+window.doResetPassword = async () => {
+  const p1 = document.getElementById('reset-pass1').value;
+  const p2 = document.getElementById('reset-pass2').value;
+  const msg = document.getElementById('reset-msg');
+  if (!p1 || !p2) { msg.textContent = 'Rellena los dos campos'; msg.className = 'auth-msg err'; return; }
+  if (p1.length < 6) { msg.textContent = 'Mínimo 6 caracteres'; msg.className = 'auth-msg err'; return; }
+  if (p1 !== p2) { msg.textContent = 'Las contraseñas no coinciden'; msg.className = 'auth-msg err'; return; }
+  try {
+    await confirmPasswordReset(auth, resetOobCode, p1);
+    msg.textContent = '✅ Contraseña cambiada. Ya puedes entrar.';
+    msg.className = 'auth-msg ok';
+    setTimeout(() => {
+      document.getElementById('reset-screen').style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'flex';
+      window.history.replaceState({}, '', window.location.pathname);
+    }, 2000);
+  } catch(e) {
+    if (e.code === 'auth/expired-action-code') msg.textContent = 'El enlace ha caducado, pide uno nuevo';
+    else if (e.code === 'auth/invalid-action-code') msg.textContent = 'El enlace no es válido';
+    else msg.textContent = 'Error: ' + e.message;
+    msg.className = 'auth-msg err';
+  }
+};
 
 // ── STATIC DATA ──────────────────────────────────────
 const CATS=[
