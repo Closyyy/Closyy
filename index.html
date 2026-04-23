@@ -1539,7 +1539,7 @@ window.runAIOutfit = async () => {
     const data = await res.json();
     const raw = (data.choices?.[0]?.message?.content || '').replace(/```json|```/g,'').trim();
     let parsed;
-    try { const m = raw.match(/\{[\s\S]*\}/); if(!m) throw new Error(); parsed = JSON.parse(m[0]); } catch(e) { throw new Error('Respuesta inesperada de la IA'); }
+    try { const m = raw.match(/\{[\s\S]*\}/); if(!m) throw new Error('Sin JSON: '+raw.substring(0,100)); parsed = JSON.parse(m[0]); } catch(e) { throw new Error(e.message); }
     const selected = (parsed.selectedIds||[]).map(id=>items.find(i=>i.id===id)).filter(Boolean);
     if (!selected.length) throw new Error('La IA no encontró prendas adecuadas');
     window._aiOutfit = { name: parsed.outfitName||'Mi look IA', ids: selected.map(i=>i.id) };
