@@ -1521,7 +1521,7 @@ window.runAIOutfit = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        model: 'google/gemma-3-4b-it:free',
         messages: [
           { role: 'system', content: 'Eres una estilista personal experta. Responde SOLO con JSON válido, sin texto extra ni markdown.' },
           { role: 'user', content: prompt }
@@ -1539,7 +1539,7 @@ window.runAIOutfit = async () => {
     const data = await res.json();
     const raw = (data.choices?.[0]?.message?.content || '').replace(/```json|```/g,'').trim();
     let parsed;
-    try { parsed = JSON.parse(raw); } catch(e) { throw new Error('Respuesta inesperada de la IA'); }
+    try { const m = raw.match(/\{[\s\S]*\}/); if(!m) throw new Error(); parsed = JSON.parse(m[0]); } catch(e) { throw new Error('Respuesta inesperada de la IA'); }
     const selected = (parsed.selectedIds||[]).map(id=>items.find(i=>i.id===id)).filter(Boolean);
     if (!selected.length) throw new Error('La IA no encontró prendas adecuadas');
     window._aiOutfit = { name: parsed.outfitName||'Mi look IA', ids: selected.map(i=>i.id) };
