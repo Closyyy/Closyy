@@ -1517,7 +1517,7 @@ window.runAIOutfit = async () => {
   const prompt = `Eres una estilista personal experta. Crea el mejor outfit posible con estas prendas.\n\n${contexto}\n\nPRENDAS DISPONIBLES:\n${prendasTexto}\n\nREGLAS:\n- Selecciona 3-5 prendas que formen un outfit completo\n- Prioriza favoritas si encajan\n- Piensa en look completo: arriba, abajo, calzado y accesorios si los hay\n\nResponde SOLO con este JSON exacto, sin texto extra ni markdown:\n{"outfitName":"nombre creativo máx 4 palabras","selectedIds":["id1","id2","id3"],"why":"2-3 frases explicando por qué combinan bien"}`;
 
   try {
-    const res = await fetch('https://closy-ai.j79183828.workers.dev', {
+    const res = await fetch('https://closyia.fjatenciar.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
