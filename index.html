@@ -1521,7 +1521,7 @@ window.runAIOutfit = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'mistralai/mistral-7b-instruct:free',
+        model: 'google/gemma-3-4b-it:free',
         messages: [
           { role: 'system', content: 'Eres una estilista personal experta. Responde SOLO con JSON válido, sin texto extra ni markdown.' },
           { role: 'user', content: prompt }
